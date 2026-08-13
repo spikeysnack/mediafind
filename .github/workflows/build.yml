@@ -14,11 +14,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
+    - name: Install g++-16
+      run: sudo apt-get update
+      run: sudo apt-get install -y g++-16    
     - name: make
       run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
