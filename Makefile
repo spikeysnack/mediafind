@@ -4,8 +4,9 @@ SHELL := /usr/bin/bash
 
 TARGET = mediafind
 
-CXX = g++-16
-CXXFLAGS =  -Wall -Wextra -std=gnu++26 -march=native -O3 -pthread
+CXX = g++
+CXXSTD = c++26
+CXXFLAGS =  -Wall -Wextra -std=$(CXXSTD) -march=native -O3 -pthread
 CXXDEBUGFLAGS =  -O0 -g -Wall -Wextra -std=gnu++26 -D_GLIBCXX_DEBUG -pthread  -fsanitize=thread
 
 .PHONY: clean test

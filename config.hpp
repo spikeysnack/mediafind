@@ -61,6 +61,7 @@ auto make_map = [] (auto& a, auto& b) -> pathmap
   for (size_t i = 0; i < a.size(); ++i) {
     pm[a[i]] = b[i];
   }
+  // println( "map: {}", std::format("{}", pm) );
   return pm;
 };
 
