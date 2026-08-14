@@ -23,8 +23,11 @@ CXXDEBUGFLAGS =  -O0 -g -Wall -Wextra -std=gnu++26 -D_GLIBCXX_DEBUG -pthread  -f
 
 .PHONY: clean test install uninstall
 
-mediafind:	mediafind.hpp mediafind.cpp
+mediafind:	mediafind.hpp mediafind.cpp config.hpp
 	$(CXX) $(CXXFLAGS) -o mediafind mediafind.cpp
+
+build_test:	mediafind.hpp mediafind.cpp config.hpp
+	$(CXX) $(CXXFLAGS) -D BUILD_TEST -o mediafind mediafind.cpp
 
 debug:	mediafind.hpp mediafind.cpp
 	$(CXX) $(CXXDEBUGFLAGS) -o mediafind mediafind.cpp

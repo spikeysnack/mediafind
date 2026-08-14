@@ -5,6 +5,7 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
+#ifndef BUILD_TEST
 // set to true after editing
 constexpr bool EDITED = false;
 // constexpr bool EDITED = true;
@@ -15,6 +16,7 @@ constexpr std::string_view must_edit =
   "Then set EDITED to true.\n\n";
 
 static_assert(EDITED, must_edit);
+#endif
 
 #include "mediafind.hpp"
 
