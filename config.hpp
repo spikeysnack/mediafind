@@ -1,11 +1,22 @@
 /* config.hpp */
 
+/* EDIT THIS FILE FIRST FOR YOUR DIRECTORIES */
+
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-#include "mediafind.hpp"
+// set to true after editing
+constexpr bool EDITED = false;
+// constexpr bool EDITED = true;
 
-/*  edit these dirs and filenames for your setup */
+constexpr std::string_view must_edit =
+  "\n\nYOU MUST EDIT config.hpp "
+  "FIRST FOR YOUR DIRECTORIES.\n"
+  "Then set EDITED to true.\n\n";
+
+static_assert(EDITED, must_edit);
+
+#include "mediafind.hpp"
 
 /* this all happens befor main */
 
@@ -45,13 +56,17 @@ const auto audio_dbfiles = std::to_array<const string>(
   } );
 
 
-// const auto pic_dirs = std::to_array<const string>(
-//   {
-//   } );
+#ifdef USE_PICTURES
+ const auto pic_dirs = std::to_array<const string>(
+   {
+     base_dir + "/" + "Pictures";
+   } );
 
-// const auto pic_dbfiles = std::to_array<const string>(
-//   {
-//   } );
+ const auto pic_dbfiles = std::to_array<const string>(
+   {
+     base_dir + "/" + ".mediadb.Pictures"
+   } );
+#endif
 
 
 // lamdba makes correlation
@@ -61,7 +76,6 @@ auto make_map = [] (auto& a, auto& b) -> pathmap
   for (size_t i = 0; i < a.size(); ++i) {
     pm[a[i]] = b[i];
   }
-  // println( "map: {}", std::format("{}", pm) );
   return pm;
 };
 

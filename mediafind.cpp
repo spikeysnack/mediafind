@@ -31,7 +31,7 @@ bool create_databases_if_needed( pathmap& pm ) noexcept(false)  {
 	fs::permissions(filepath, perms, fs::perm_options::replace);
       }
       catch (const fs::filesystem_error& e) {
-	perr("Filesystem permissions error:\t{}", e.what() );
+	println(stderr, "Filesystem permissions error:\t{}\n", e.what() );
 	OK = false;
 	break;
       }
@@ -115,16 +115,14 @@ bool chown_databases( vector<string> files ) {
 
   // effective uid is root no pwd needed
   if (geteuid() == 0) {
-       perr("running chown as root ...");
-    			   
+    println(stderr, "running chown as root ...");
+
     sb  << chown_bin  << " "
 	<< uid_gid  << " "
 	<< file_list << " 2>&1";
   }
   else {  // sudo user needs user passwd
-    
-    perr( "running chown via sudo ...");
-
+    println(stderr, "running chown via sudo ...");
     sb << sudo_bin << " -S "
        << chown_bin  << " "
        << uid_gid  << " "
@@ -162,10 +160,8 @@ void help() {
 	-v video databases only
     )";
 
-       pout("{}", helpstr);
-  
+  println(stdout, "{}", helpstr);
 }
-
 
 
 // jthread runs this
@@ -196,7 +192,7 @@ void launch_instance(int id, const string& exe, const string& term, string& dbfi
 	if (fs::is_directory(line) )  { std::cout << line << '\n'; }
       }
       else {
-	pout("{}", line);
+	println( stdout, "{}", line);
       }
     }
 
@@ -206,7 +202,7 @@ void launch_instance(int id, const string& exe, const string& term, string& dbfi
 
 // settable options
 enum class Option {
-  AUDIO_ONLY, VIDEO_ONLY, DIRS_ONLY,
+  AUDIO_ONLY, VIDEO_ONLY, DIRS_ONLY, PICS_ONLY,
   UPDATE_DB, HELP, METADATA, UNKNOWN
 };
 
@@ -239,12 +235,12 @@ int main(int argc, char* argv[], [[maybe_unused]] char* env[]) {
   const vector<string> args{argv+1, argv+argc};
   vector<string> dirs{};
   vector<string> files{};
-
+#ifdef USE_PICTURES
+  vector<string> pictures{};
+#endif
   string term;
   if (args.size() == 0) {
-    auto noterm = "No term given to search for";
-    pout("{}", noterm);
-      
+    println(stderr, "No term given to search for");
     exit(1);
   }
 
@@ -264,7 +260,7 @@ int main(int argc, char* argv[], [[maybe_unused]] char* env[]) {
   bool show_metadata {false};
   bool audio_only{false};
   bool video_only{false};
-
+  
   //  set option state vars
   for ( auto& arg : args ) {
 
@@ -286,7 +282,7 @@ int main(int argc, char* argv[], [[maybe_unused]] char* env[]) {
 
       case Option::UNKNOWN: {} [[fallthrough]];
       default: {
-	   pout(" Unknown option: {}", arg);
+	println(stderr, " Unknown option: {}", arg);
 	help();
 	exit(2);
       }
@@ -301,11 +297,11 @@ int main(int argc, char* argv[], [[maybe_unused]] char* env[]) {
 
   
   if (! create_databases_if_needed(video_map) ) {
-    perr("ERROR some video databases could not be created");
+    println(stderr, "ERROR some video databases could not be created");
     exit(1);
   }
   if (! create_databases_if_needed(audio_map) ) {
-    perr("ERROR some audio databases could not be created");;
+    println(stderr, "ERROR some audio databases could not be created");;
     exit(1);
   }
 
@@ -327,7 +323,7 @@ int main(int argc, char* argv[], [[maybe_unused]] char* env[]) {
 
   // chose both as "only" stupid
   if (audio_only && video_only) {
-    perr("can't have video only and audio only. (default: both)");
+    println(stderr, "can't have video only and audio only. (default: both)");
     exit(2);
   }
 

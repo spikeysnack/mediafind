@@ -1,9 +1,11 @@
 #ifndef _MEDIAFIND_HPP
 #define _MEDIAFIND_HPP
-// STL headers
+
 #include <iostream>
 #include <memory>
+#include <algorithm>
 #include <unordered_map>
+#include <functional>
 #include <array>
 #include <vector>
 #include <string>
@@ -12,28 +14,23 @@
 #include <thread>
 #include <cstdlib>
 #include <cstring>
+#include <cerrno>
 #include <optional>
 #include <filesystem>
 #include <fstream>
-#include <format>
-
-// some distros don't have it
-#ifdef __cpp_lib_print
-    #include <print>
-    #define PRINTLN 1
-#else
-    #define PRINTLN 0
-#endif
-
-
-// std c headers
+#include <stdexcept>
+#include <meta>
+#include <print>
+#include <utility>
+#include <ranges>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <sys/wait.h>
 
-#if __cplusplus < 202302L
-    #error "This project requires C++23 or greater!"
+#if __cplusplus < 201703L
+    #error "This project requires C++17 or greater!"
 #endif
 
 // use objcopy --dump-section .app_metadata=app_metadata.json mediafind
@@ -66,16 +63,14 @@ namespace mediafind {
   using std::string;
   using std::string_view;
   using std::to_string;
-  #if PRINTLN
   using std::println;
-  #endif
-  using std::format;
   using std::jthread;
   using std::optional;
   using std::cout;
   using std::cerr;
 
   // type aliases
+  using std::shift_left;
   namespace fs = std::filesystem;
   using pathmap = std::unordered_map<string, string>;
   using spair = std::pair<string,string>;
@@ -94,37 +89,6 @@ const int DEBUG = 0;
 
 
 /***   UTILS  ***/
-/*
-template <typename... Args>
-void perr(Args... args) {
-  ((std::cerr << args << " "), ...); 
-  std::cerr << '\n';
-}
-*/
-
-
-// in case we don't have println
-template <typename... Args>
-void perr(std::format_string<Args...> fmt, Args&&... args) {
-  #if PRINTLN
-      std::println(stderr,fmt, std::forward<Args>(args)...);
-  #else
-      ((std::cerr << std::format(fmt, args) ), ...); 
-      std::cerr << '\n';
-  #endif
-}
-
-template <typename... Args>
-void pout(std::format_string<Args...> fmt, Args&&... args) {
-  #if PRINTLN
-      std::println(stdout,fmt, std::forward<Args>(args)...);
-  #else
-      ((std::cout << std::format(fmt, args) ), ...); 
-      std::cout << '\n';
-  #endif
-}
-
-
 
 // output json string
 void print_metadata () {
@@ -259,7 +223,7 @@ string exec(const string& cmd) {
   if (WIFSIGNALED(popen_status)) {
     fprintf(stderr, "piped  process killed by signal: %d\n", WTERMSIG(popen_status));
     string_view errstr = strerror(errnum);
-    perr( "ERROR:\t[{}]\n", errstr);
+    println(stderr, "ERROR:\t[{}]\n", errstr);  
     exit(1);
   } 
   
@@ -270,14 +234,27 @@ string exec(const string& cmd) {
     exit_status = WEXITSTATUS(popen_status);
   
     if ( (exit_status != 0)  | (errno != 0) ) {
+      println(stderr, "WARNING exec pipe returned {} instead of 0\n", exit_status);
       string_view errstr = strerror(errnum);
-      perr("WARNING exec pipe returned {} instead of 0", exit_status);
-      perr("ERROR:\t {}" , errstr);
+      println(stderr, "ERROR:\t[{}]\n", errstr);
       exit(1);
     }
   }
   
   return result;
+}
+
+
+// extract and pop from vector front using shift_left
+const string lshift( vector<string>& vec) {
+
+  if(vec.empty()) return {};
+
+  string s = vec[0];
+
+  auto new_end = shift_left(vec.begin(), vec.end(), 1);
+  vec.erase(new_end-1);
+  return s;
 }
 
 void print_db(const pathmap& pm, std::ostream& os=std::cout) {

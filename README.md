@@ -57,9 +57,8 @@ With the  pthreads library installed, it will be faster still.
 
 ### trouble compiling ###
 
-requires  *c++23* or better for `println`, use std::cerr instead if
+requires  *c++23* or better  (c++26 preferred) for `println`, use std::cerr instead if
 you don't have that going.
-
 
 for instance: 
 
