@@ -17,6 +17,8 @@ constexpr std::string_view must_edit =
 
 static_assert(EDITED, must_edit);
 
+#endif
+
 // base dir for db_files
 const string base_dir = getenv("HOME");
 #define BASE(D)  (base_dir + "/" + D)  
@@ -57,8 +59,6 @@ const string base_dir = getenv("HOME");
 
 #define AUDIO_DIRS { AUDIO_DIR1, AUDIO_DIR2, AUDIO_DIR3, AUDIO_DIR4 }
 #define AUDIO_DBS  { AUDIO_DB1 , AUDIO_DB2 , AUDIO_DB3 , AUDIO_DB4  }
-
-#endif
 
 
 #include "mediafind.hpp"
