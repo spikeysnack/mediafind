@@ -9,13 +9,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install GCC/G++ 16 PPA
+      - name: Install GCC/G++ 16 PPA and run make
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
           sudo apt-get install -y g++-16
-
-      - name: make
-        run: |
           make build_test
-	  
+
