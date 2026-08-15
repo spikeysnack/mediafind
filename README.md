@@ -1,5 +1,7 @@
 # mediafind #
 
+[![Build with GCC 16](https://github.com/spikeysnack/mediafind/actions/workflows/build.yml/badge.svg)](https://github.com/spikeysnack/mediafind/actions/workflows/build.yml)
+
 ## Introduction ##
 
 a fast local database search tool for media files.
