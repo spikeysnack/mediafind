@@ -20,23 +20,27 @@
 #include <fstream>
 #include <stdexcept>
 #include <meta>
-#include <print>
 #include <utility>
 #include <ranges>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <grp.h>
 #include <sys/wait.h>
+#include <print>
 
 #if __cplusplus < 201703L
     #error "This project requires C++17 or greater!"
 #endif
 
-// use objcopy --dump-section .app_metadata=app_metadata.json mediafind
-// to get this in json format
-// or run ./mediafind -m > file
-//        ./mediadinf -m | jq
+/**
+  This is embedded into the binary as a section
+     objcopy --dump-section .app_metadata=app_metadata.json mediafind
+
+     run ./mediafind -m > file
+     ./mediadinf -m | jq  // decodes json
+**/
 
 __attribute__((section(".app_metadata")))
 const char APP_METADATA[] =
@@ -51,11 +55,12 @@ const char APP_METADATA[] =
   "\"repo\": \"\", "
   "\"license\": \"Public Domain\", "
   "\"license_url\": \"www.unlicense.org\","
-  "\"version\" : \"1.2\", "
+  "\"version\" : \"2.0.1\", "
   "\"status\" : \"working\"}";
 
 
-// encapsulate all needed objects in a namespace
+
+// encapsulate all needed objects in mediafind namespace
 namespace mediafind {
   using std::array;
   using std::vector;
@@ -63,28 +68,45 @@ namespace mediafind {
   using std::string;
   using std::string_view;
   using std::to_string;
-  using std::println;
+  #if defined(__cpp_lib_print)
+     using std::println;
+  #endif
   using std::jthread;
   using std::optional;
   using std::cout;
   using std::cerr;
+  using std::shift_left;
+  using std::istringstream;
+  using std::ostringstream;
+  using std::ifstream;
+  using std::ofstream;
+  using std::replace;
+  using std::getline;
+  using std::jthread;
 
   // type aliases
-  using std::shift_left;
   namespace fs = std::filesystem;
   using pathmap = std::unordered_map<string, string>;
   using spair = std::pair<string,string>;
 
 };
 
+const int DEBUGGING_ENABLED = 0;
+
+#ifdef DEBUG_BUILD
+   DEBUGGING_ENABLED = 1;
+#endif
 
 using namespace mediafind;
 
-const int DEBUG = 0;
-
-#ifdef DEBUG_BUILD
-   DEBUG = 1;
-#endif
+/** function prototypes **/
+void print_metadata ();
+vector<string> get_PATH();
+const fs::path which(const string& name);
+bool read_config_file( const string& config_file, pathmap& v, pathmap& a);
+string exec(const string& cmd);
+const string lshift( vector<string>& vec);
+void print_db(const pathmap& pm, std::ostream& os);
 
 
 
@@ -107,27 +129,33 @@ void print_metadata () {
   std::cout << md << "\n";
 }
 
+
 // variadic templates
 template<typename... Args>
-void debug(Args&&... args) {
-  if (DEBUG) {
-  ((cerr <<  "DEBUG "  << std::forward<Args>(args) << "\n"), ...);
-    cerr << '\n';
+void DEBUG(std::format_string<Args...> fmt, Args&&... args) {
+  if (DEBUGGING_ENABLED) {
+    std::println( stderr, fmt, std::forward<Args>(args) ...);
   }
 }
 
 template<typename... Args>
-void warn(Args&&... args) {
-  ((cerr <<  "WARNING "  << std::forward<Args>(args) << "\n"), ...);
-    cerr << '\n';
+void INFO(std::format_string<Args...> fmt, Args&&... args) {
+  std::println( stdout, fmt, std::forward<Args>(args) ...);
+}
+
+
+template<typename... Args>
+void WARN(std::format_string<Args...> fmt, Args&&... args) {
+  std::println( stderr, fmt, std::forward<Args>(args) ...);
 }
 
 template<typename... Args, typename ERR=int>
-void fatal(Args&&... args, ERR code) {
-  ((cerr <<  "FATAL "  << std::forward<Args>(args) << "\n"), ...);
-    cerr << '\n';
-    exit(code);
+void FATAL(ERR code, std::format_string<Args...> fmt, Args&&... args) {
+  std::println( stderr, fmt, std::forward<Args>(args) ...);
+  std::exit(code);
 }
+
+
 
 
 // query env
@@ -166,6 +194,7 @@ vector<string> get_PATH() {
 }
 
 
+
 // emulate 'which' command
 const fs::path which(const string& name) {
 
@@ -191,7 +220,7 @@ string exec(const string& cmd) {
   string result{};
   int popen_status = 0;
   int exit_status = 0;;
-  debug( "exec: " , cmd);
+  DEBUG( "exec:  {}" , cmd);
 
 // Define a custom deleter lambda capturing exit_status by reference
 
@@ -208,7 +237,7 @@ string exec(const string& cmd) {
 
   // could fail
   if (!pipe) {
-    warn("Pipe error in exec");
+    WARN("Pipe error in exec");
     throw std::runtime_error("popen() failed!");
   }
 
@@ -216,31 +245,30 @@ string exec(const string& cmd) {
   while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
     result += buffer.data();
   }
-  
+
   int errnum = errno;
 
-  // oops a fatal system-level signal was caught by the kernel 
+  // oops a FATAL system-level signal was caught by the kernel
   if (WIFSIGNALED(popen_status)) {
     fprintf(stderr, "piped  process killed by signal: %d\n", WTERMSIG(popen_status));
-    string_view errstr = strerror(errnum);
-    println(stderr, "ERROR:\t[{}]\n", errstr);  
-    exit(1);
-  } 
-  
+    const string errstr = strerror(errnum);
+    FATAL(1, "{}", errstr);
+  }
+
   // piped process exited with status
-  
+
   if ( WIFEXITED(popen_status) ) {
 
     exit_status = WEXITSTATUS(popen_status);
-  
+
     if ( (exit_status != 0)  | (errno != 0) ) {
-      println(stderr, "WARNING exec pipe returned {} instead of 0\n", exit_status);
+      WARN("WARNING exec pipe returned {} instead of 0\n", exit_status);
       string_view errstr = strerror(errnum);
-      println(stderr, "ERROR:\t[{}]\n", errstr);
-      exit(1);
+      FATAL(1, "{}", 1, errstr);
+      //exit(1);
     }
   }
-  
+
   return result;
 }
 
@@ -266,17 +294,92 @@ void print_db(const pathmap& pm, std::ostream& os=std::cout) {
   os.flush();
 }
 
+bool read_config_file( const string& config_file, pathmap& v, pathmap& a) {
+
+  extern const string base_dir;
+  const string prefix = "mediadb";
+  enum M { AUDIO, VIDEO, NONE};
+  string dir;
+  string db;
+
+  fs::path p{config_file};
+  M m = NONE;;
+
+  if ( fs::exists(p) ) {
+
+    try {
+
+      ifstream ifs{p};
+
+      while( getline(ifs, dir) ) {
+
+	auto only_whitespace = [](string& s) -> bool {
+	  return std::all_of(s.begin(), s.end(), [](unsigned char c) {return std::isspace(c);});
+	};
+
+	// comment, empty line,  or no chars
+	if ( (dir[0] == '#') || dir.empty() || only_whitespace(dir) ) {continue;}
+
+	if (dir[0] == '[') {
+	  // video dir
+	  if (dir == "[video]") { m = VIDEO;}
+
+	  // audio dir
+	  if (dir == "[audio]") { m = AUDIO;}
+
+	  continue;
+	}
+
+	fs::path d(dir);
+
+	if ( ! fs::is_directory(d) ) {
+	  WARN( "{} path not found in {} .. skipping", dir, config_file);
+	  continue;
+	}
+
+	// create database file path name
+	db = std::format( "{}/.{}.{}", base_dir, prefix, d.filename());
+
+	if (m == VIDEO) { v.emplace(dir, db);}
+
+	if (m == AUDIO) { a.emplace(dir, db);}
+
+      } // while
+
+      return true;
+    } //try
+    catch (const fs::filesystem_error& e) {
+      WARN("Filesystem permissions error:\t{}\n", e.what() );
+      return false;
+    }
+    catch (const std::ios_base::failure& e) {
+      std::cerr << "Critical I/O error: " << e.what() << '\n';
+    }
+    catch (const std::exception& e) {
+      std::cerr << "Error: " << e.what() << '\n';
+    }
+
+  } // if fs.exists
+
+  return false;
+}
+
 
 
 // the rest are in mediafind.cpp
-bool create_databases_if_needed( pathmap& pm );
+void print_version();
+bool create_databases_if_needed(  pathmap& pm );
+bool chown_databases_if_needed( vector<string> files );
 bool update_database ( const string& dirpath, const string& dbfile);
-bool chown_databases( vector<string> files );
-void launch_instance(int id, const string& exe, const string& term, string& dbfile, bool dirs_only);
-
+void launch_instance(int id, const string& exe, const string& term, string& dbfile, const bool& dirs_only);
+void add_dir(const string& dir);
 enum class Option; // forward declare
 Option  get_option(const string& opt);
 void help();
 int main(int argc, char* argv[], [[maybe_unused]] char* env[]);
 
 #endif
+
+/* end */
+
+// vim: set filetype=cpp:

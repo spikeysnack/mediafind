@@ -1,7 +1,5 @@
 # mediafind #
 
-[![Build with GCC 16](https://github.com/spikeysnack/mediafind/actions/workflows/build.yml/badge.svg)](https://github.com/spikeysnack/mediafind/actions/workflows/build.yml)
-
 ## Introduction ##
 
 a fast local database search tool for media files.
@@ -28,10 +26,25 @@ as its database  would get far too large.
 
 ## make/install: ##
 
-Simply edit the header file config.hpp to reflect the 
-base dir for the database files,
-and the top audio and video directories to search in,
-and each corresponding database file for that dir.
+1. edit `media_dirs.txt` to reflect the 
+   base dir for the database files,
+   and the top audio and video directories to search in,
+   and each corresponding database file for that dir.
+
+2. type `make config` to execute the tcl script `config.tcl`. 
+   This will create the custom C++ file `user_config.hpp`
+   that contains version and mappings for your system.
+   
+3. type `make`  to build.
+
+4. type `make check` for a basic test. *(jq preferred, python3 if not)*
+
+5. type `make install` to install to your user bin dir
+
+6. type `make install_man` to install manpage in section 1 of your user man dir.
+
+7. type `make uninstall` to remove the binary and man pages. 
+
 
 I named them the database files as 
 ".mediadb.<dirname>" to be clear about it.
@@ -44,16 +57,23 @@ Anyway use your own dirs and file names.
 A simple make command should build the executable,
 and you can copy it anywhere your PATH.
 
-**Required external binaries: locate , updatedb, chown, sudo.**
-You should already have them or what distro are you using.
-sudo is only required to chown the database files to your
-ownership after an update.
+**Required external binaries:** 
+
+   build:  **g++ tclsh make**
+   run  :  **locate, chown updatedb**
+
+You should already have them or *what distro are you using*.
 
 ## how fast? ##
 
 *real fast* -- it searches all the databases in separate threads.
 
 With the  pthreads library installed, it will be faster still.
+
+./mediafind -a <search term> searches only the audio databases;
+./mediafind -v <search term> searches only the video databases;
+
+
 
 -------------------------------------------------------------------------------
 
@@ -81,6 +101,8 @@ file at a time to prevent any data races.
 
 updatedb  skips  unreadable files and dirs silently for the most part.
 
-Running `mediafind -u` will have the same effect on the dirs scanned.
-It may spit out "permission denied" or it may not, depending on
-your /etc/updatedb.conf settings.
+### permisions ###
+program runs as a regular user
+The database files  (~/.mediafind/<dbfile>) are set to 0640 (-rw-r-----)
+so the user can read and write and the group can read them.
+Files will be recreated if deleted once the program is run again.

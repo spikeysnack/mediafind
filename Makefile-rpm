@@ -1,0 +1,63 @@
+# Define package metadata
+PACKAGE_NAME=mediafind
+NAME := mediafind
+VERSION=2.0.1
+ARCH=amd64
+RELEASE := 1
+BUILD_DIR=build/$(PACKAGE_NAME)_$(VERSION)_$(ARCH)
+
+CWD    := $(CURDIR) 
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+MANDIR ?= $(PREFIX)/share/man/man1
+RPMDIR ?= $(CWD)
+
+DIRCOPY := $(NAME)-$(VERSION)
+
+TARBALL := $(DIRCOPY).tar.gz
+SPECFILE := $(NAME).spec
+
+# Check if the executable is in the user's PATH
+ifeq (, $(shell command -v rpmbuild 2> /dev/null))
+    $(error "Error: 'rpmbuild' is not installed or not in PATH. Please install it to continue.")
+endif
+
+# Your standard compilation target
+all:
+	@echo  "CAUTION -- this Makefile is experimental.\n"
+	@echo  "It may not work correctly on your system.\n"
+# make sure it works here first	
+	@$(MAKE) -f Makefile
+
+
+# The fedora packaging target starts with a source tarball
+rpmbuild:	tarball		
+	@echo "Creating rmpbuild layout"
+	mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SRPMS}
+	cp $(TARBALL) ~/rpmbuild/SOURCES/
+	rpmbuild -ba $(SPECFILE)
+	if [[ $? -eq 0 ]] ; then \
+		find ~/rpbuild/RPMS/  -name "$(NAME)*" -exec cp {} $(RPMDIR) \;
+	else 
+		>&2 echo "cannot find $(NAME) rpm"
+		exit 1
+	fi	
+
+# create a tar.gz 
+
+tarball:
+	mkdir -p  $(DIRCOPY)
+	find . -maxdepth 1 ! -name '.' ! -name '$(DIRCOPY)' -exec cp -r {} $(DIRCOPY)/ \;
+	tar -czf  $(TARBALL) $(DIRCOPY)/*
+	rm -rf    $(DIRCOPY)
+
+
+clean:
+	rm -rf bin/* build/*
+
+# vim: set ft=make noexpandtab:
+
+# Local Variables:
+# mode: makefile
+# End:
+

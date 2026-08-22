@@ -1,6 +1,13 @@
-% MEDIAFIND(1) User Manuals | Version 1.0.0
+% MEDIAFIND(1) User Manuals | Version 2.0.0
 % Chris Reid <spikeysnack@gmail.com>
 % August 2026
+
+---
+title: mediafind
+date: August 2026
+header: mediafind user manual
+footer: version 2.0.1
+---
 
 # NAME
 mediafind \- a program to find audio and video files f a s t.
@@ -32,4 +39,19 @@ local locate database files, specifically for audio and media stores.
 **-v, video_only**
 : Search video databases only
 
+**--version**
+: show program version
+
+**--add-dir  <dir>**
+: search additional dir
+
+# EXIT STATUS
+**0**
+: Success.
+
+**1**
+: Failure. (e.g. missing dir)
+
+**2**
+: Bad Option. (on cmdline)
 

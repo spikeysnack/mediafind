@@ -1,0 +1,53 @@
+# Define package metadata
+PACKAGE_NAME=mediafind
+VERSION=2.0.1
+ARCH=amd64
+BUILD_DIR=build/$(PACKAGE_NAME)_$(VERSION)_$(ARCH)
+
+PREFIX ?= $(HOME)
+BINDIR ?= $(PREFIX)/bin
+MANDIR ?= $(PREFIX)/.local/man/man1
+
+# Check if the executable is in the user's PATH
+ifeq (, $(shell command -v dpkg-deb 2> /dev/null))
+    $(error "Error: 'dpkg-deb' is not installed or not in PATH. Please install it to continue.")
+endif
+
+
+# Your standard compilation target
+all:
+	@echo  "CAUTION -- this Makefile is experimental.\n"
+	@echo  "It may not work correctly on your system.\n"
+	@$(MAKE) -f Makefile
+
+# The Debian packaging target
+deb: all
+	@echo "Creating Debian package layout..."
+# Create target installation filesystem structure
+	mkdir -p $(BUILD_DIR)/DEBIAN
+	mkdir -p $(BUILD_DIR)/bin
+	mkdir -p $(BUILD_DIR)/man/man1
+
+# Copy executable and manpage to the simulated system path
+	cp mediafind $(BUILD_DIR)/bin/
+	cp mediafind.1 $(BUILD_DIR)/man/man1
+
+# Generate the required Debian control metadata file
+	echo "Package: $(PACKAGE_NAME)" > $(BUILD_DIR)/DEBIAN/control
+	echo "Version: $(VERSION)" >> $(BUILD_DIR)/DEBIAN/control
+	echo "Architecture: $(ARCH)" >> $(BUILD_DIR)/DEBIAN/control
+	echo "Maintainer: <spikeysnack@gmail.com>" >> $(BUILD_DIR)/DEBIAN/control
+	echo "Description: mediafind is a command-line tool to make, update, and search " \
+	"local locate database files, specifically for audio and media stores." >> $(BUILD_DIR)/DEBIAN/control
+
+# Build the actual .deb package
+	dpkg-deb --build --root-owner-group $(BUILD_DIR)
+
+clean:
+	rm -rf bin/* build/* build
+
+# vim: set ft=make noexpandtab:
+
+# Local Variables:
+# mode: makefile
+# End:
