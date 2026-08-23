@@ -20,5 +20,3 @@ jobs:
           make test
           make uninstall
 
-
-
