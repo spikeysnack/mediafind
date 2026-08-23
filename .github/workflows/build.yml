@@ -13,6 +13,12 @@ jobs:
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y g++-16
-          make build_test
+          sudo apt-get install -y tcl jq make g++-16
+          make config
+          make
+          make install
+          make test
+          make uninstall
+
+
 

@@ -97,7 +97,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(MANDIR)/$(TARGET).1
 
 # run basic commands to check
-check:	mediafind
+test:	mediafind
 	@ ./mediafind --version;       t1=$$? ; \
 	  ./mediafind -h;              t2=$$?;  \
 	  ./mediafind -m | $(JS_CMD);  t3=$$?;  \
@@ -108,15 +108,11 @@ check:	mediafind
 	    echo -e "\nsome checks failed\n" ;  \
 	 fi
 
+
+
 help:
 	@echo -e "help2:\n" ; \
 	echo "$$HELP_TEXT"
-
-
-test:	mediafind
-	@echo "TEST $(TARGET)"
-	./mediafind -d -a "progressive rock"
-	./mediafind -d -v "street"
 
 json:	mediafind
 	@ ./mediafind -m > mediafind.json
